@@ -1,3 +1,6 @@
+use macroquad::prelude::rand;
+use std::ops::Add;
+
 pub const GENES_NUM: usize = 32;
 pub const BASES: &str = "ACGT";
 
@@ -13,50 +16,33 @@ fn complement(base: char) -> char {
         'C' => 'G',
         'G' => 'C',
         'T' => 'A',
-        // Usiamo unreachable invece di unimplemented, perché i controlli
-        // nel costruttore garantiscono che avremo solo A, C, G o T.
         _ => unreachable!("Base non valida riscontrata nel DNA!"),
     }
+}
+
+// ---------------------------------------------------------
+// HELPER: Genera un array di 32 indici mescolati sullo Stack
+// ---------------------------------------------------------
+fn get_shuffled_indices() -> [usize; GENES_NUM] {
+    let mut indices = [0; GENES_NUM];
+    (0..GENES_NUM).for_each(|i| {
+        indices[i] = i;
+    });
+
+    // Algoritmo Fisher-Yates
+    for i in (1..GENES_NUM).rev() {
+        let j = rand::gen_range(0, i + 1) as usize;
+        indices.swap(i, j);
+    }
+
+    indices
 }
 
 impl Dna {
     pub fn get_compl(&self) -> Self {
         Self {
-            // .map() applica elegantemente la funzione `complement` a tutti e 32 gli elementi
             sequence: self.sequence.map(complement),
-            // I geni accesi/spenti rimangono esattamente gli stessi
             activity_mask: self.activity_mask,
-        }
-    }
-
-    pub fn new(sequence: &str) -> Self {
-        let len = sequence.len();
-        assert!(
-            len <= GENES_NUM,
-            "Sequence must have len <= 32, given {}",
-            len
-        );
-        assert!(
-            sequence.chars().all(|x| BASES.contains(x)),
-            "Sequence must contains only {}",
-            BASES
-        );
-
-        let mut seq_array = ['A'; GENES_NUM];
-        for (n, i) in sequence.chars().enumerate() {
-            seq_array[n] = i;
-        }
-
-        // Calcola la maschera: se abbiamo 'len' caratteri, accendiamo 'len' bit.
-        let activity_mask = if len == GENES_NUM {
-            u32::MAX // Eccezione per 32 bit: accende tutti i bit (0xFFFFFFFF)
-        } else {
-            (1_u32 << len) - 1 // Es: se len=4, 1<<4 = 16. 16-1 = 15 (0b00001111)
-        };
-
-        Self {
-            sequence: seq_array,
-            activity_mask,
         }
     }
 
@@ -70,61 +56,71 @@ impl Dna {
 
         Self {
             sequence: seq_array,
-            // Converte una stringa di "0" e "1" in un u32 indicando la base (2)
             activity_mask: u32::from_str_radix(mask_str, 2).unwrap_or(0),
         }
     }
-}
 
-use std::ops::Add;
+    pub fn new(sequence: &str) -> Self {
+        let len = sequence.len();
+        assert!(
+            len <= GENES_NUM,
+            "La sequenza DNA non può superare i 32 caratteri"
+        );
 
-// Implementiamo il "Crossover Genetico"
-impl Add for &Dna {
-    type Output = Dna;
+        let mut seq_array = ['A'; GENES_NUM];
+        let mut activity_mask = 0_u32;
+        let bases = ['A', 'C', 'G', 'T'];
 
-    fn add(self, rhs: Self) -> Self::Output {
-        let mut seq_a = String::new();
-        let mut seq_b = String::new();
+        // Usiamo la nostra nuova funzione helper!
+        let indices = get_shuffled_indices();
+        let mut char_iter = sequence.chars();
 
-        // 1. Estrai i geni attivi del Genitore A (Sinistra)
-        for i in 0..GENES_NUM {
-            if (self.activity_mask >> i) & 1 == 1 {
-                seq_a.push(self.sequence[i]);
+        for (i, &pos) in indices.iter().enumerate() {
+            if i < len {
+                seq_array[pos] = char_iter.next().unwrap();
+                activity_mask |= 1 << pos;
+            } else {
+                seq_array[pos] = bases[rand::gen_range(0, 4) as usize];
             }
         }
 
-        // 2. Estrai i geni attivi del Genitore B (Destra)
-        for i in 0..GENES_NUM {
-            if (rhs.activity_mask >> i) & 1 == 1 {
-                seq_b.push(rhs.sequence[i]);
-            }
+        Self {
+            sequence: seq_array,
+            activity_mask,
         }
-
-        // 3. Meiosi: Tagliamo a metà il corredo genetico.
-        // Rust permette di usare le 'slice' in modo molto sicuro e veloce.
-        let mid_a = seq_a.len() / 2;
-        let mid_b = seq_b.len() / 2;
-
-        let half_a = &seq_a[0..mid_a]; // Prende la prima metà di A
-        let half_b = &seq_b[mid_b..]; // Prende dalla metà alla fine di B
-
-        // 4. Ricombinazione
-        let mut combined_sequence = format!("{}{}", half_a, half_b);
-
-        // Controllo di sicurezza: se per qualche strano caso i frammenti sommati
-        // superano 32 (non dovrebbe accadere con le divisioni, ma la prudenza non è mai troppa)
-        if combined_sequence.len() > GENES_NUM {
-            combined_sequence.truncate(GENES_NUM);
-        }
-
-        // Il nuovo organismo riceve la fusione esatta del 50% di entrambi
-        Dna::new(&combined_sequence)
     }
 }
 
+// ---------------------------------------------------------
+// NUOVA MEIOSI (Crossover Uniforme posizionale)
+// ---------------------------------------------------------
 impl Add for Dna {
-    type Output = Self;
+    type Output = Dna;
+
     fn add(self, rhs: Self) -> Self::Output {
-        &self + &rhs
+        let mut child_seq = ['A'; GENES_NUM];
+        let mut child_mask = 0_u32;
+
+        // Richiamiamo la funzione helper per avere un nuovo set di indici mescolati
+        let indices = get_shuffled_indices();
+
+        for (i, &pos) in indices.iter().enumerate() {
+            if i < (GENES_NUM / 2) {
+                child_seq[pos] = self.sequence[pos];
+                if (self.activity_mask >> pos) & 1 == 1 {
+                    child_mask |= 1 << pos;
+                }
+            } else {
+                child_seq[pos] = rhs.sequence[pos];
+                if (rhs.activity_mask >> pos) & 1 == 1 {
+                    child_mask |= 1 << pos;
+                }
+            }
+        }
+
+        Dna {
+            sequence: child_seq,
+            activity_mask: child_mask,
+        }
     }
 }
