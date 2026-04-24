@@ -5,17 +5,61 @@ use crate::dna::{Dna, GENES_NUM};
 
 // Rimosso ANGLE_STEP globale!
 
-#[derive(Clone, Copy)]
+use std::ops::{Add, AddAssign, Sub, SubAssign};
+
+#[derive(Clone, Copy, Debug)] // Debug è sempre comodo per i print!
 pub struct Coor {
     pub x: f32,
     pub y: f32,
 }
+
 impl Coor {
     pub fn new(x: f32, y: f32) -> Self {
         Self { x, y }
     }
 }
 
+// Implementa l'operatore + (Ritorna una NUOVA coordinata)
+impl Add for Coor {
+    type Output = Self;
+
+    fn add(self, other: Self) -> Self::Output {
+        Self {
+            x: self.x + other.x,
+            y: self.y + other.y,
+        }
+    }
+}
+
+// Implementa l'operatore - (Ritorna una NUOVA coordinata)
+impl Sub for Coor {
+    type Output = Self;
+
+    fn sub(self, other: Self) -> Self::Output {
+        Self {
+            x: self.x - other.x,
+            y: self.y - other.y,
+        }
+    }
+}
+
+// Implementa l'operatore += (Modifica la coordinata ESISTENTE)
+impl AddAssign for Coor {
+    fn add_assign(&mut self, other: Self) {
+        self.x += other.x;
+        self.y += other.y;
+    }
+}
+
+// Implementa l'operatore -= (Modifica la coordinata ESISTENTE)
+impl SubAssign for Coor {
+    fn sub_assign(&mut self, other: Self) {
+        self.x -= other.x;
+        self.y -= other.y;
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct Cell {
     pub dna: Dna,
     pub center: Coor,
@@ -23,6 +67,9 @@ pub struct Cell {
 }
 
 impl Cell {
+    pub fn with_center(&self, center: Coor) -> Self {
+        Cell::new(self.dna, center)
+    }
     pub fn new(dna: Dna, center: Coor) -> Self {
         let mut cell = Self {
             dna,
@@ -36,7 +83,6 @@ impl Cell {
     pub fn express_phenotype(&mut self) {
         self.expressed.clear();
 
-        // 1. Contiamo istantaneamente i bit a 1 (geni attivi)
         let active_genes = self.dna.activity_mask.count_ones();
 
         // Se non ci sono almeno 3 geni attivi, non si può formare un poligono.
@@ -60,7 +106,7 @@ impl Cell {
                     'C' => 40.0,
                     'G' => 60.0,
                     'T' => 80.0,
-                    _ => 30.0,
+                    _ => unimplemented!("Unknown base"),
                 };
 
                 self.expressed.push(Coor {
@@ -68,7 +114,6 @@ impl Cell {
                     y: self.center.y + current_angle.sin() * radius,
                 });
 
-                // Avanziamo con l'angolo SOLO dopo aver espresso un gene
                 current_angle += angle_step;
             }
         }
@@ -90,5 +135,17 @@ impl Cell {
         }
 
         draw_circle(self.center.x, self.center.y, 4.0, RED);
+    }
+}
+
+impl Add for &Cell {
+    type Output = Cell;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        // Applica l'operatore di somma che abbiamo appena definito per Dna
+        let combined_dna = self.dna + rhs.dna;
+
+        // Genera la nuova cellula alle coordinate di quella a sinistra (self)
+        Cell::new(combined_dna, self.center)
     }
 }
