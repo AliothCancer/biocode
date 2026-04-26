@@ -1,69 +1,14 @@
 use macroquad::prelude::*;
 use std::f32::consts::PI;
 
-use crate::dna::{Dna, GENES_NUM};
-
-// Rimosso ANGLE_STEP globale!
-
-use std::ops::{Add, AddAssign, Sub, SubAssign};
-
-#[derive(Clone, Copy, Debug)] // Debug è sempre comodo per i print!
-pub struct Coor {
-    pub x: f32,
-    pub y: f32,
-}
-
-impl Coor {
-    pub fn new(x: f32, y: f32) -> Self {
-        Self { x, y }
-    }
-}
-
-// Implementa l'operatore + (Ritorna una NUOVA coordinata)
-impl Add for Coor {
-    type Output = Self;
-
-    fn add(self, other: Self) -> Self::Output {
-        Self {
-            x: self.x + other.x,
-            y: self.y + other.y,
-        }
-    }
-}
-
-// Implementa l'operatore - (Ritorna una NUOVA coordinata)
-impl Sub for Coor {
-    type Output = Self;
-
-    fn sub(self, other: Self) -> Self::Output {
-        Self {
-            x: self.x - other.x,
-            y: self.y - other.y,
-        }
-    }
-}
-
-// Implementa l'operatore += (Modifica la coordinata ESISTENTE)
-impl AddAssign for Coor {
-    fn add_assign(&mut self, other: Self) {
-        self.x += other.x;
-        self.y += other.y;
-    }
-}
-
-// Implementa l'operatore -= (Modifica la coordinata ESISTENTE)
-impl SubAssign for Coor {
-    fn sub_assign(&mut self, other: Self) {
-        self.x -= other.x;
-        self.y -= other.y;
-    }
-}
+use crate::{GENES_NUM, coordinates::Coor, dna::Dna, segments::FunctionalSegment};
 
 #[derive(Debug, Clone)]
 pub struct Cell {
     pub dna: Dna,
     pub center: Coor,
     pub expressed: Vec<Coor>,
+    pub segments: Vec<FunctionalSegment>,
 }
 
 impl Cell {
@@ -75,6 +20,7 @@ impl Cell {
             dna,
             center,
             expressed: Vec::with_capacity(GENES_NUM),
+            segments: vec![],
         };
         cell.express_phenotype();
         cell
@@ -135,17 +81,5 @@ impl Cell {
         }
 
         draw_circle(self.center.x, self.center.y, 4.0, RED);
-    }
-}
-
-impl Add for &Cell {
-    type Output = Cell;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        // Applica l'operatore di somma che abbiamo appena definito per Dna
-        let combined_dna = self.dna + rhs.dna;
-
-        // Genera la nuova cellula alle coordinate di quella a sinistra (self)
-        Cell::new(combined_dna, self.center)
     }
 }

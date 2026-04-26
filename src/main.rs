@@ -1,10 +1,7 @@
-use biocode::{
-    cells::{Cell, Coor},
-    dna::Dna,
-};
+use biocode::{Breedable, cells::Cell, coordinates::Coor, dna::Dna};
 use macroquad::prelude::*;
 
-#[macroquad::main("Mutazioni Complesse (Indel)")]
+#[macroquad::main("Biocode")]
 async fn main() {
     let center_x = screen_width() / 2.0;
     let center_y = screen_height() / 2.0;
@@ -12,7 +9,9 @@ async fn main() {
     let dna = Dna::new("ACGTAGGTACGA");
     let cell_pent = Cell::new(dna.get_compl(), center);
     let cell_comp = Cell::new(dna, center + Coor::new(200.0, 0.0));
-    let fusion = (&cell_pent + &cell_comp).with_center(center + Coor::new(0.0, 200.0));
+    let fusion = (&cell_pent, &cell_comp)
+        .breed()
+        .with_center(center + Coor::new(0.0, 200.0));
 
     let cells = [cell_pent, cell_comp, fusion];
 

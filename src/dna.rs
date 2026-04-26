@@ -1,8 +1,8 @@
-use macroquad::prelude::rand;
-use std::ops::Add;
+pub mod bitwise_utils;
 
-pub const GENES_NUM: usize = 32;
-pub const BASES: &str = "ACGT";
+use macroquad::prelude::rand;
+
+use crate::{GENES_NUM, get_shuffled_indices};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Dna {
@@ -18,24 +18,6 @@ fn complement(base: char) -> char {
         'T' => 'A',
         _ => unreachable!("Base non valida riscontrata nel DNA!"),
     }
-}
-
-// ---------------------------------------------------------
-// HELPER: Genera un array di 32 indici mescolati sullo Stack
-// ---------------------------------------------------------
-fn get_shuffled_indices() -> [usize; GENES_NUM] {
-    let mut indices = [0; GENES_NUM];
-    (0..GENES_NUM).for_each(|i| {
-        indices[i] = i;
-    });
-
-    // Algoritmo Fisher-Yates
-    for i in (1..GENES_NUM).rev() {
-        let j = rand::gen_range(0, i + 1) as usize;
-        indices.swap(i, j);
-    }
-
-    indices
 }
 
 impl Dna {
@@ -87,40 +69,6 @@ impl Dna {
         Self {
             sequence: seq_array,
             activity_mask,
-        }
-    }
-}
-
-// ---------------------------------------------------------
-// NUOVA MEIOSI (Crossover Uniforme posizionale)
-// ---------------------------------------------------------
-impl Add for Dna {
-    type Output = Dna;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        let mut child_seq = ['A'; GENES_NUM];
-        let mut child_mask = 0_u32;
-
-        // Richiamiamo la funzione helper per avere un nuovo set di indici mescolati
-        let indices = get_shuffled_indices();
-
-        for (i, &pos) in indices.iter().enumerate() {
-            if i < (GENES_NUM / 2) {
-                child_seq[pos] = self.sequence[pos];
-                if (self.activity_mask >> pos) & 1 == 1 {
-                    child_mask |= 1 << pos;
-                }
-            } else {
-                child_seq[pos] = rhs.sequence[pos];
-                if (rhs.activity_mask >> pos) & 1 == 1 {
-                    child_mask |= 1 << pos;
-                }
-            }
-        }
-
-        Dna {
-            sequence: child_seq,
-            activity_mask: child_mask,
         }
     }
 }
