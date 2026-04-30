@@ -3,14 +3,16 @@ pub mod coordinates;
 pub mod dna;
 pub mod segments;
 
-use crate::{
-    cells::Cell,
-    dna::{Dna, bitwise_utils::is_bit_on},
-};
+use crate::dna::{Base, Dna, bitwise_utils::is_bit_on};
 use macroquad::prelude::rand;
 
-pub const GENES_NUM: usize = 32;
-pub const BASES: &str = "ACGT";
+pub type BitFlagDim = u128;
+pub const GENES_NUM: usize = 128;
+pub const A: Base = Base::A;
+pub const C: Base = Base::C;
+pub const G: Base = Base::G;
+pub const T: Base = Base::T;
+pub const BASES: [Base; 4] = [A, C, G, T];
 
 pub trait Breedable<T> {
     fn breed(&self) -> T;
@@ -21,8 +23,8 @@ pub trait Breedable<T> {
 // ---------------------------------------------------------
 impl Breedable<Dna> for (&Dna, &Dna) {
     fn breed(&self) -> Dna {
-        let mut child_seq = ['A'; GENES_NUM];
-        let mut child_mask = 0_u32;
+        let mut child_seq = [Base::A; GENES_NUM];
+        let mut child_mask = 0 as BitFlagDim;
 
         // Richiamiamo la funzione helper per avere un nuovo set di indici mescolati
         let indices = get_shuffled_indices();
@@ -32,7 +34,7 @@ impl Breedable<Dna> for (&Dna, &Dna) {
                 // pos is the randomized index
                 child_seq[pos] = self.0.sequence[pos];
                 if is_bit_on(self.0.activity_mask, pos) {
-                    child_mask |= (1 << pos);
+                    child_mask |= 1 << pos;
                 }
             } else {
                 child_seq[pos] = self.1.sequence[pos];
@@ -49,11 +51,11 @@ impl Breedable<Dna> for (&Dna, &Dna) {
     }
 }
 
-impl Breedable<Cell> for (&Cell, &Cell) {
-    fn breed(&self) -> Cell {
-        Cell::new((&self.0.dna, &self.1.dna).breed(), self.0.center)
-    }
-}
+// impl Breedable<Cell> for (&Cell, &Cell) {
+//     fn breed(&self) -> Cell {
+//         Cell::new((&self.0.dna, &self.1.dna).breed(), self.0.center)
+//     }
+// }
 
 // ---------------------------------------------------------
 // HELPER: Genera un array di 32 indici mescolati sullo Stack
