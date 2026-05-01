@@ -1,32 +1,53 @@
-use crate::dna::Dna;
+use macroquad::math::Vec2;
 
+use crate::{coordinates::Coor, dna::Dna};
+
+// Livello 1: L'Organismo
 pub struct Cell {
-    nucleus: Nucleus,
-    membrane: Membrane,
-    dna: Dna,
-}
-pub struct Nucleus(Vec<Segment>);
-pub struct Membrane(Vec<Segment>);
-
-impl Cell {
-    pub fn new(dna: Dna) -> Self {
-        Self {
-            nucleus: Nucleus(vec![]),
-            membrane: Membrane(vec![]),
-            dna,
-        }
-    }
+    pub center: Vec2,
+    pub nucleus: Nucleus,
+    pub membrane: Membrane,
+    pub dna: Dna,
 }
 
+pub struct Nucleus {
+    // Il nucleo potrebbe contenere le riserve di energia o la logica di riproduzione
+}
+
+pub struct Membrane {
+    pub organs: Vec<Organ>,
+}
+
+// Livello 2: L'Organo (Il "Building Block" funzionale)
+pub struct Organ {
+    pub kind: OrganKind,
+    pub segments: Vec<Segment>,
+    pub local_offset: Coor, // Dove si trova l'organo rispetto al centro della cellula
+}
+
+pub enum OrganKind {
+    Mouth,
+    Sensor,
+    Flagellum,
+    Armor,
+}
+
+// Livello 3: Il Segmento (L'unità atomica)
 pub struct Segment {
-    start: (f32, f32),
-    end: (f32, f32),
-    kind: SegmentKind,
+    pub kind: SegmentKind,
+    pub start: Coor, // Relative al centro dell'organo
+    pub end: Coor,
 }
 
 pub enum SegmentKind {
     Structural,
-    Core,
     Absorber,
-    Sensor,
+    Core,
+    Thruster,
+}
+
+impl Cell {
+    pub fn new(center: Coor, dna: Dna) -> Self {
+        todo!()
+    }
 }

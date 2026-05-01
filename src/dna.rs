@@ -24,7 +24,7 @@ impl Base {
             'C' => C,
             'G' => G,
             'T' => T,
-            _ => unreachable!("Base non valida riscontrata nel DNA!"),
+            _ => unreachable!("Got invalid char: `{}`", ch),
         }
     }
 }

@@ -3,7 +3,10 @@ pub mod coordinates;
 pub mod dna;
 pub mod segments;
 
-use crate::dna::{Base, Dna, bitwise_utils::is_bit_on};
+use crate::{
+    cells::{Segment, SegmentKind},
+    dna::{Base, Dna, bitwise_utils::is_bit_on},
+};
 use macroquad::prelude::rand;
 
 pub type BitFlagDim = u128;
@@ -73,4 +76,13 @@ fn get_shuffled_indices() -> [usize; GENES_NUM] {
     }
 
     indices
+}
+
+pub fn fenotype_transcription(dna: Dna) -> Vec<Segment> {
+    let Dna {
+        sequence,
+        activity_mask,
+    } = dna;
+
+    todo!()
 }
